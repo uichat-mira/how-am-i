@@ -1,0 +1,44 @@
+name: Check
+
+on:
+  pull_request:
+    branches: [dev, test, prod]
+  push:
+    branches: [dev, test, prod]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, Workers runtime tests, dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck and Worker runtime test
+        run: npm run check
+      - name: Wrangler packaging dry-run (no credentials, no deploy)
+        run: npx --no-install wrangler deploy --dry-run --outdir "$RUNNER_TEMP/haomai-dist"
+      - name: Check whitespace
+        run: git diff --check HEAD~1 HEAD
+
+  mira-gate:
+    name: Mira Gate
+    if: ${{ always() }}
+    needs: [check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce trusted check outcome
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+        run: |
+          test "$CHECK_RESULT" = success
