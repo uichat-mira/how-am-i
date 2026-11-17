@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   worker:
-    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/feat/opencode-v2-canary'
+    if: github.event_name == 'workflow_dispatch'
     # The reusable workflow further constrains each trusted job; its model
     # worker_capture job cannot obtain write credentials or reporter secrets.
     permissions:
@@ -28,7 +28,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-    uses: uichat-mira/.github/.github/workflows/mira-external-worker.yml@54b1939f037b365ef57a8cbf529dea80aa188d18
+    uses: uichat-mira/.github/.github/workflows/mira-external-worker.yml@24302fcb183e7922e9d8c500722a6828186171df
     with:
       issue_number: ${{ fromJSON(inputs.issue_number) }}
       base_branch: dev
@@ -41,59 +41,3 @@ jobs:
         npm run check
     secrets:
       opencode_go_api_key: ${{ secrets.AI_PROVIDER_OPENCODE_GO_KEY }}
-
-  # Temporary canary. Remove this job before promoting the caller to dev.
-  # The normal Issue Worker job is skipped on this isolated test branch.
-  v2_go_canary:
-    if: github.ref == 'refs/heads/feat/opencode-v2-canary'
-    runs-on: ubuntu-latest
-    timeout-minutes: 9
-    permissions:
-      contents: read
-    steps:
-      - name: Install isolated OpenCode V2.3.0
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://opencode.ai/v2/install | bash -s -- --version 2.3.0
-          echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
-      - name: One bounded real OpenCode Go model smoke
-        shell: bash
-        env:
-          MIRA_WORKER_PROVIDER_KEY: ${{ secrets.AI_PROVIDER_OPENCODE_GO_KEY }}
-          OPENCODE_DISABLE_AUTOUPDATE: "1"
-          OPENCODE_DISABLE_DEFAULT_PLUGINS: "1"
-          OPENCODE_DISABLE_LSP_DOWNLOAD: "1"
-          OPENCODE_DISABLE_MODELS_FETCH: "1"
-          NO_COLOR: "1"
-        run: |
-          set -euo pipefail
-          test "$(opencode --version)" = "opencode v2.3.0"
-          test -n "$MIRA_WORKER_PROVIDER_KEY"
-          export OPENCODE_CONFIG_CONTENT
-          OPENCODE_CONFIG_CONTENT='{"share":"disabled","update":"disable","providers":{"opencode-go":{"name":"OpenCode Go","package":"@opencode/ai/providers/openai-compatible","env":["MIRA_WORKER_PROVIDER_KEY"],"settings":{"baseURL":"https://opencode.ai/inference/go/openai/v1"},"models":{"deepseek-v4.1-flash":{}}}},"permissions":[{"action":"shell","resource":"*","effect":"deny"},{"action":"edit","resource":"*","effect":"deny"},{"action":"subagent","resource":"*","effect":"deny"},{"action":"webfetch","resource":"*","effect":"deny"},{"action":"websearch","resource":"*","effect":"deny"},{"action":"external_directory","resource":"*","effect":"deny"}]}'
-          set +e
-          timeout 150s opencode run --standalone --model opencode-go/deepseek-v4.1-flash --agent build --format json "Synthetic CI smoke only. Do not call tools. Reply exactly MIRA_V2_GO_SMOKE_OK." > "$RUNNER_TEMP/go-smoke-events.jsonl" 2> "$RUNNER_TEMP/go-smoke-stderr.txt"
-          rc="$?"
-          set -e
-          python3 - "$rc" <<'PY'
-          import json, os, sys
-          from pathlib import Path
-          root=Path(os.environ["RUNNER_TEMP"])
-          events=[]
-          errors=[]
-          for line in (root/"go-smoke-events.jsonl").read_text(errors="replace").splitlines():
-              try: item=json.loads(line)
-              except json.JSONDecodeError: continue
-              if not isinstance(item,dict): continue
-              if item.get("type")=="text":
-                  part=item.get("part") or {}
-                  if isinstance(part,dict): events.append(part.get("text",""))
-              if item.get("type")=="error":errors.append(str(item.get("error",""))[:200])
-          passed=int(sys.argv[1])==0 and not errors and any("MIRA_V2_GO_SMOKE_OK" in t for t in events)
-          print(json.dumps({"client":"opencode v2.3.0","model":"opencode-go/deepseek-v4.1-flash","exit_code":int(sys.argv[1]),"text_seen":bool(events),"error_count":len(errors),"passed":passed}))
-          if not passed:
-              print("Provider error summary:",errors[:1],file=sys.stderr)
-              print("CLI stderr tail:",(root/"go-smoke-stderr.txt").read_text(errors="replace")[-700:],file=sys.stderr)
-              sys.exit(1)
-          PY
