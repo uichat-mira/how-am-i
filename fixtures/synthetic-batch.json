@@ -1,0 +1,22 @@
+{
+  "schema": "haomai.telemetry.v1",
+  "batch_id": "c647a4b7-8a66-4e88-a13e-c203188ba985",
+  "events": [
+    {
+      "event_id": "5279291f-386a-4930-96e3-bd302e4161c1",
+      "occurred_at": "2026-11-17T13:00:00Z",
+      "kind": "candidate.captured",
+      "level": "info",
+      "repository": "uichat-mira/cloud-auth",
+      "issue_number": 123,
+      "run_id": "44000000000",
+      "run_attempt": 1,
+      "stage": "capture",
+      "outcome": "captured",
+      "evidence_ref": {
+        "type": "actions-run",
+        "id": "44000000000"
+      }
+    }
+  ]
+}

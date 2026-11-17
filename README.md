@@ -3,15 +3,15 @@
 **给每一次执行号脉。**  
 Lightweight runtime signals and short-lived diagnostics for the Mira Worker Workforce.
 
-> **Status: publicly initialized, implementation not started.** This is a source-code project, not a public log viewer. No ingest endpoint, live reporter, Cloudflare deployment, or Run-query integration is claimed.
+> **Status: source-level V1 POC implemented; not deployed.** The Worker, deterministic HMAC/schema checks and real Workers-runtime tests live in this repository. No live Reporter, Cloudflare deployment, deployed Query API integration, or T4 real-account evidence is claimed yet.
 
 ## V1
 
 The **first reporting source** is the trusted Reporter for the [Mira External Worker](https://github.com/uichat-mira/.github). It collects bounded, structured execution milestones and sanitized failure signals so that short-lived diagnostic events can supplement the authoritative GitHub engineering evidence.
 
-- Planned `POST /v1/events` — HMAC-authenticated, bounded JSON batches from trusted Reporter jobs only.
-- Planned `GET /health` — minimal service health without private metadata.
-- Planned storage: the receiving Cloudflare Workers Free instance emits structured **Workers Logs**. No D1, R2, KV, DO, Queue or private server for V1.
+- `POST /v1/events` — HMAC-authenticated, bounded JSON batches from trusted Reporter jobs only.
+- `GET /health` — minimal service health without private metadata.
+- Storage: the receiving Cloudflare Workers Free instance emits structured **Workers Logs**. No D1, R2, KV, DO, Queue or private server for V1.
 - **Zero incremental Cloudflare infrastructure cost** is a required gate. Paid Worker execution models are permitted by the upstream contract and accounted for separately.
 - GitHub Issues, Actions, Candidate/Verify/Delivery Artifacts and Draft PRs remain the authoritative execution/delivery record.
 - Cloudflare Free account read/query permissions and real retention/cost must pass live proof before "searchable" is advertised.
@@ -28,9 +28,11 @@ The **first reporting source** is the trusted Reporter for the [Mira External Wo
 
 [Control Room](https://github.com/uichat-mira/control-room) — future read-only consumer; its public API must never expose the high-permission Cloudflare Observability token or private raw logs.
 
-## Next engineering step
+## Current POC state
 
-A small Cloudflare Free **ingest/query feasibility POC**: T1/T2 validation of HMAC, schema and sensitive-field rejection; T3 real Workers runtime behavior; T4 run-ID query in the real Free account with observed permission, CPU, latency, cost and retention. Do not claim POC complete based on mocks or the existence of this repository.
+The source-level **ingest/query feasibility POC** implements T1/T2 validation of HMAC, schema and sensitive-field rejection plus T3 real Workers-runtime behavior. Reproduce with `npm ci && npm run check`. See [docs/poc.md](docs/poc.md) for the endpoint contract, synthetic local fixture and maintainer-owned T4 procedure.
+
+T4 — `run_id` query in the real Cloudflare Free account with observed permission, CPU, latency, cost and retention — remains **pending** and must be performed by a trusted maintainer. Do not claim POC complete based on mocks or the existence of this repository.
 
 ## Development policy
 
@@ -38,5 +40,6 @@ A small Cloudflare Free **ingest/query feasibility POC**: T1/T2 validation of HM
 - Read [AGENTS.md](AGENTS.md) and current [Mira Organization instructions](https://github.com/uichat-mira/.github/blob/main/AGENTS.md).
 - Do not commit credentials, prompts, raw execution logs or real user data.
 - Deployment, production-secret management and launch are separate evidence-based tasks.
+- Local development and verification commands are documented in [docs/poc.md](docs/poc.md).
 
 © Contributors. Public visibility does **not** imply an open-source license grant; a license may be selected as an explicit follow-up.
