@@ -1,0 +1,41 @@
+name: Mira External Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Open GitHub Issue with an authorized worker contract"
+        required: true
+        type: number
+
+# POC opt-in only: no issue_comment auto-dispatch on this public repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ format('how-am-i-worker-{0}-{1}', github.repository, inputs.issue_number) }}
+  cancel-in-progress: false
+
+jobs:
+  worker:
+    if: github.event_name == 'workflow_dispatch'
+    # The reusable workflow further constrains each trusted job; its model
+    # worker_capture job cannot obtain write credentials or reporter secrets.
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: uichat-mira/.github/.github/workflows/mira-external-worker.yml@54b1939f037b365ef57a8cbf529dea80aa188d18
+    with:
+      issue_number: ${{ inputs.issue_number }}
+      base_branch: dev
+      timeout_minutes: 60
+      verification_command: |
+        set -euo pipefail
+        test -f package.json
+        test -f package-lock.json
+        npm ci
+        npm run check
+    secrets:
+      opencode_go_api_key: ${{ secrets.AI_PROVIDER_OPENCODE_GO_KEY }}
