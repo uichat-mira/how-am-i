@@ -1,13 +1,13 @@
 # 号脉 V1 Cloudflare Free POC
 
-This document describes the source-level receive-only vertical slice in this repository. It does **not** claim a deployed Worker, a live Reporter, or real Cloudflare account evidence.
+This document describes the receive-only POC and records the Cloudflare live **synthetic** T4/T5 evidence. One production Worker is deployed, but there is **no live trusted Reporter**; production source deployment does not imply full V1 acceptance.
 
 ## Non-claims
 
 - No production deployment or Cloudflare resource is created by this repository's checks.
 - No Cloudflare, Reporter or provider secret is required for `npm ci && npm run check`.
 - `202 Accepted` means the request was validated and structured log emission was attempted. It does **not** mean the event was persisted, indexed, queryable, or delivered exactly once.
-- T4 real-account `run_id` query, permission, CPU, latency, retention and cost behavior remains a trusted-maintainer gate.
+- T4 synthetic live ingest/query and CPU have been measured, but full account billing-plan/cost reconciliation and effective retention remain open. No real Reporter credentials or private events have been connected.
 
 ## Endpoints
 
@@ -120,6 +120,30 @@ Coverage mapping:
 
 The local toolchain pins `compatibility_date` to `2026-11-17`, matching the pinned `workerd` test binary. Raising it requires a deliberate toolchain update, not only a config edit.
 
+## Verified Cloudflare T4/T5 deployment record — 2026-11-17
+
+This section records a small **synthetic** test, not general load, account billing assurance or Reporter acceptance. Source code tested and deployed: `dfc11e55232a2a428ae07bad29e6825ad8ff3306` through `dev → test → prod`. GitHub Actions `Mira Gate` was green on every environment branch.
+
+| Evidence | Actual observed result |
+| --- | --- |
+| T4 temporary test Worker | `how-am-i-test`, then **deleted** |
+| T4 signed ingest / invalid signature | HTTP `202` / `401` |
+| T4 account Workers Observability API, filtered synthetic Run ID `44000000000` | 1 matching structured event |
+| T4 CPU | Valid `202` 4 ms; invalid `401` 1 ms |
+| T5 production health / signed ingest / missing HMAC | HTTP `200` / `202` / `401` |
+| T5 production Query API | 1 matching structured event for synthetic Run ID |
+| T5 CPU | Valid `202` 2 ms |
+| Production endpoint | https://how-am-i.dangjingtao.workers.dev/health |
+| Cloudflare active deployment | `0ec9d016-61ed-4cae-8148-36ca3eb32170` |
+| Active Worker version | `3f3f11cc-5dfa-4bbb-839e-070dce89a29f` at 100% |
+| Cloudflare resources | Only production `how-am-i` Worker remains; no D1/R2/KV/DO/Queue/SaaS added |
+
+**Unresolved evidence:** the authorized Cloudflare connection can deploy Workers and query Observability, but Billing Read for account subscriptions returned HTTP 403; actual incremental bill cannot be verified from this connection. Effective account retention and sustained CPU under realistic load were not measured. No incremental paid Cloudflare resource was deliberately enabled, but that is not proof of the future bill. The repository cannot promise fully accepted Free-plan operation until this is reconciled.
+
+**Security observation:** Cloudflare's own invocation records captured the *custom HMAC signature request header*, although the application's structured event did not. Treat Observability query permission as sensitive, avoid exporting raw platform request logs, and review/redact this behavior before distributing Reporter credentials. There is no deployed Reporter and the local disposable smoke-signing material was deleted; the reporter integration must securely rotate/distribute the HMAC secret.
+
+The authoritative observed evidence and open gates are recorded in [OPS-030](https://github.com/uichat-mira/how-am-i/issues/2). This section must not be read as a complete Worker Workforce or TV acceptance.
+
 ## Trusted-maintainer T4 procedure
 
 T4 must run in an isolated trusted shell by a maintainer, not in the model shell. Use a disposable synthetic event only.
@@ -138,4 +162,4 @@ T4 must run in an isolated trusted shell by a maintainer, not in the model shell
    - observed incremental Cloudflare cost, expected to be zero.
 7. If query permission, retention, CPU or cost cannot be proven on the Free plan, record the exact gate and stop. Do not silently enable paid observability, add a database, or publish a high-permission token to a public API.
 
-Until T4 is observed, describe this POC as source-validated and Workers-runtime tested, not as deployed, searchable or production-ready.
+T4/T5 synthetic ingest and controlled Query API checks have now been observed. Do **not** extrapolate that to billing, effective retention, real Reporter connectivity, throughput, public search APIs, exactly-once delivery, or production readiness of the full Workforce/TV product.
